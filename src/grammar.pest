@@ -49,8 +49,14 @@ IdentifierName = @{ IdentStart ~ IdentCont* }
 Identifier	= _{ IdentifierName ~ Spacing }
 IdentStart	= @{ ('a'..'z' | 'A'..'Z' | "_") }
 IdentCont	= @{ IdentStart | '0'..'9' }
-Literal		= ${ "'" ~ (!"'" ~ Char)? ~ (!"'" ~ Char )* ~ "'" ~ Spacing
-		 | "\"" ~ (!"\"" ~ DoubleChar)? ~ (!"\"" ~ DoubleChar )* ~ "\"" ~ Spacing }
+
+SingleQLiteral = ${ (!"'" ~ Char)? ~ (!"'" ~ Char )* }
+SingleQLiteralFull = _{ "'" ~ SingleQLiteral ~ "'" ~ Spacing }
+DoubleQLiteral = ${ (!"\"" ~ DoubleChar)? ~ (!"\"" ~ DoubleChar )* }
+DoubleQLiteralFull = _{ "\"" ~ DoubleQLiteral ~ "\"" ~ Spacing }
+
+Literal		= _{ SingleQLiteralFull | DoubleQLiteralFull }
+		 
 Class		= ${ ( "[[" ~ ( "^" ~ DoubleRanges | DoubleRanges )? ~ "]]" | "[" ~ ( "^" ~ Ranges | Ranges )? ~ "]" ) ~ Spacing }
 Ranges		= ${ !"]" ~ Range ~ (!"]" ~ Range )* }
 DoubleRanges	= ${ !"]]" ~ DoubleRange ~ (!"]]" ~ DoubleRange)* }

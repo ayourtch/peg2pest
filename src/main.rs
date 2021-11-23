@@ -39,13 +39,95 @@ struct Opts {
     verbose: i32,
 }
 
-fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
+fn convert_identifier_name(ident: pest::iterators::Pair<Rule>) -> String {
     let mut acc: String = "".to_string();
-    let mut inner_pairs = seq.into_inner();
-    for inner_pair in inner_pairs {
-        acc.push_str(&format!(" {:#?}", &inner_pair.as_rule()));
-    }
+    acc.push_str(&format!(" {}", ident.as_str()));
     acc
+}
+
+fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
+    let mut full_acc: String = "".to_string();
+    let mut inner_pairs = seq.into_inner();
+    let mut suppress_tilde = true;
+    let mut suppress_next_tilde = false;
+    let mut rule_not = false;
+
+    for inner_pair in inner_pairs {
+        let mut acc: String = "".to_string();
+        if suppress_next_tilde {
+            suppress_tilde = true;
+            suppress_next_tilde = false;
+        }
+        match &inner_pair.as_rule() {
+            Rule::IdentifierName => {
+                acc.push_str(&convert_identifier_name(inner_pair));
+            }
+            Rule::Open => {
+                acc.push_str(" (");
+            }
+            Rule::Close => {
+                acc.push_str(" )");
+                suppress_tilde = true;
+            }
+            Rule::And => {
+                acc.push_str(" &");
+                suppress_next_tilde = true;
+            }
+            Rule::Not => {
+                rule_not = true;
+                suppress_next_tilde = true;
+            }
+            Rule::Star => {
+                acc.push_str("*");
+                suppress_tilde = true;
+            }
+            Rule::Plus => {
+                acc.push_str("+");
+                suppress_tilde = true;
+            }
+            Rule::Question => {
+                acc.push_str("?");
+                suppress_tilde = true;
+            }
+            Rule::Dot => {
+                if rule_not {
+                    acc.push_str("EOI");
+                    rule_not = false;
+                } else {
+                    acc.push_str(".");
+                }
+            }
+            Rule::SingleQLiteral => acc.push_str(&format!(" \"{}\"", inner_pair.as_str())),
+            Rule::DoubleQLiteral => acc.push_str(&format!(" ^\"{}\"", inner_pair.as_str())),
+            Rule::Action => {
+                /* Actions are not supported */
+                suppress_tilde = true;
+            }
+            Rule::Begin => { /* nothing */ }
+            Rule::End => {
+                /* nothing */
+                suppress_tilde = true;
+            }
+            Rule::Expression => {
+                acc.push_str(&convert_expression(inner_pair));
+                suppress_tilde = true;
+            }
+            x => acc.push_str(&format!(" RULE({:#?})", x)),
+        }
+
+        if !suppress_tilde {
+            full_acc.push_str(" ~");
+        }
+        if rule_not {
+            full_acc.push_str(" !");
+            rule_not = false;
+        }
+        full_acc.push_str(&acc);
+        if suppress_tilde {
+            suppress_tilde = suppress_next_tilde;
+        }
+    }
+    full_acc
 }
 
 // fn convert_expression<R: std::fmt::Debug + std::marker::Copy + std::cmp::Ord + std::hash::Hash>(expr: pest::iterators::Pair<R>) -> String {
@@ -55,8 +137,9 @@ fn convert_expression(expr: pest::iterators::Pair<Rule>) -> String {
     for inner_pair in inner_pairs {
         // acc.push_str(&format!("\n    {:#?}", &inner_pair));
         match inner_pair.as_rule() {
-            Rule::Slash => acc.push_str(" | "),
+            Rule::Slash => acc.push_str(" |"),
             Rule::Sequence => acc.push_str(&convert_sequence(inner_pair)),
+            Rule::TrailingSlash => acc.push_str(" | EOI "),
             _ => unreachable!(),
         }
     }
@@ -108,7 +191,7 @@ fn main() {
                                 println!(
                                     "{} = {}{}{}",
                                     ident.as_str(),
-                                    "${ ",
+                                    " ${",
                                     convert_expression(expression),
                                     " }"
                                 );
