@@ -45,6 +45,66 @@ fn convert_identifier_name(ident: pest::iterators::Pair<Rule>) -> String {
     acc
 }
 
+fn convert_class(class: pest::iterators::Pair<Rule>) -> String {
+    let mut full_acc: String = "".to_string();
+    let mut inner_pairs = class.into_inner();
+    let mut suppress_bar = true;
+
+    for inner_pair in inner_pairs {
+        let mut acc: String = "".to_string();
+        match &inner_pair.as_rule() {
+            Rule::Range => {
+                let s = inner_pair.as_str();
+                if s.len() == 3 {
+                    let parts: Vec<&str> = s.split("-").collect();
+                    assert!(parts.len() == 2);
+                    acc.push_str(&format!(" '{}'..'{}'", &parts[0], &parts[1]));
+                } else {
+                    match s {
+                        "\"" => acc.push_str(&format!(" \"\\{}\"", s)),
+                        "\\-" => acc.push_str(&format!(" \"-\"")),
+                        x => acc.push_str(&format!(" \"{}\"", s)),
+                    }
+                }
+            }
+            Rule::DoubleRange => {
+                let s = inner_pair.as_str();
+                if s.len() == 3 {
+                    let parts: Vec<&str> = s.split("-").collect();
+                    assert!(parts.len() == 2);
+                    if parts[0].to_lowercase() != parts[0].to_uppercase() {
+                        acc.push_str(&format!(
+                            " '{}'..'{}' | '{}'..'{}'",
+                            &parts[0].to_lowercase(),
+                            &parts[1].to_lowercase(),
+                            &parts[0].to_uppercase(),
+                            &parts[1].to_uppercase()
+                        ));
+                    } else {
+                        acc.push_str(&format!(" '{}'..'{}'", &parts[0], &parts[1]));
+                    }
+                } else {
+                    match s {
+                        "\"" => acc.push_str(&format!(" \"\\{}\"", s)),
+                        "\\-" => acc.push_str(&format!(" \"-\"")),
+                        x => acc.push_str(&format!(" \"{}\"", s)),
+                    }
+                }
+            }
+            x => acc.push_str(&format!(" RULE({:#?})", x)),
+        }
+
+        if suppress_bar {
+            suppress_bar = false;
+        } else {
+            full_acc.push_str(" |");
+        }
+
+        full_acc.push_str(&acc);
+    }
+    full_acc
+}
+
 fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
     let mut full_acc: String = "".to_string();
     let mut inner_pairs = seq.into_inner();
@@ -91,10 +151,10 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
             }
             Rule::Dot => {
                 if rule_not {
-                    acc.push_str("EOI");
+                    acc.push_str(" EOI");
                     rule_not = false;
                 } else {
-                    acc.push_str(".");
+                    acc.push_str(" ANY");
                 }
             }
             Rule::SingleQLiteral => acc.push_str(&format!(" \"{}\"", inner_pair.as_str())),
@@ -108,6 +168,11 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
                 /* nothing */
                 suppress_tilde = true;
             }
+            Rule::Class => {
+                acc.push_str(" (");
+                acc.push_str(&convert_class(inner_pair));
+                acc.push_str(")");
+            }
             Rule::Expression => {
                 acc.push_str(&convert_expression(inner_pair));
                 suppress_tilde = true;
@@ -118,9 +183,11 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
         if !suppress_tilde {
             full_acc.push_str(" ~");
         }
-        if rule_not {
-            full_acc.push_str(" !");
-            rule_not = false;
+        if !suppress_next_tilde {
+            if rule_not {
+                full_acc.push_str(" !");
+                rule_not = false;
+            }
         }
         full_acc.push_str(&acc);
         if suppress_tilde {
