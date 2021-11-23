@@ -17,7 +17,6 @@ use pest::prec_climber::PrecClimber;
 #[grammar = "grammar.pest"]
 pub struct MyParser;
 
-
 /// This program does something useful, but its author needs to edit this.
 /// Else it will be just hanging around forever
 #[derive(Debug, Clone, ClapParser, Serialize, Deserialize)]
@@ -38,6 +37,30 @@ struct Opts {
     /// A level of verbosity, and can be used multiple times
     #[clap(short, long, parse(from_occurrences))]
     verbose: i32,
+}
+
+fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
+    let mut acc: String = "".to_string();
+    let mut inner_pairs = seq.into_inner();
+    for inner_pair in inner_pairs {
+        acc.push_str(&format!(" {:#?}", &inner_pair.as_rule()));
+    }
+    acc
+}
+
+// fn convert_expression<R: std::fmt::Debug + std::marker::Copy + std::cmp::Ord + std::hash::Hash>(expr: pest::iterators::Pair<R>) -> String {
+fn convert_expression(expr: pest::iterators::Pair<Rule>) -> String {
+    let mut acc: String = "".to_string();
+    let mut inner_pairs = expr.into_inner();
+    for inner_pair in inner_pairs {
+        // acc.push_str(&format!("\n    {:#?}", &inner_pair));
+        match inner_pair.as_rule() {
+            Rule::Slash => acc.push_str(" | "),
+            Rule::Sequence => acc.push_str(&convert_sequence(inner_pair)),
+            _ => unreachable!(),
+        }
+    }
+    acc
 }
 
 fn main() {
@@ -73,19 +96,32 @@ fn main() {
                     // println!("Parse: {:?}", &okparse);
                     // println!("Eval: {:?}", eval(okparse));
                     println!("{}: Parse is ok", &fname);
-                    println!("data:\n{:#?}", okparse);
+                    // println!("data:\n{:#?}", okparse);
+                    for pair in okparse {
+                        match pair.as_rule() {
+                            Rule::Definition => {
+                                let mut inner_pairs = pair.into_inner();
+                                let ident = inner_pairs.next().unwrap();
+                                let left_arrow = inner_pairs.next().unwrap();
+                                assert!(left_arrow.as_rule() == Rule::LeftArrow);
+                                let expression = inner_pairs.next().unwrap();
+                                println!(
+                                    "{} = {}{}{}",
+                                    ident.as_str(),
+                                    "${ ",
+                                    convert_expression(expression),
+                                    " }"
+                                );
+                            }
+                            _ => { /* do nothing */ }
+                        }
+                    }
                     // println!("data:\n{}", okparse.as_str());
                 }
                 Err(e) => {
                     println!("{}: Error: {:?}", &fname, &e);
                 }
             }
-
         }
-
     }
-
-    println!("Hello, here is your options: {:#?}", &opts);
-
-    std::thread::sleep(std::time::Duration::from_secs(1));
 }

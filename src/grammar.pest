@@ -9,7 +9,7 @@
 //     January 14--16, 2004, Venice, Italy.
 
 // Hierarchical syntax
-Grammar		= ${ Spacing ~ PackageName
+Grammar		= _{ Spacing ~ PackageName
 			   ~ Import*
                            ~ "type" ~ MustSpacing ~ Identifier
                            ~ "Peg" ~ Spacing ~ Action
@@ -24,17 +24,17 @@ ImportName	= ${ "\"" ~ ('0'..'9' | 'a'..'z' | 'A'..'Z' | "_" | "/" | "." | "\\" 
 
 Definition	= ${ Identifier
 		     ~ LeftArrow ~ Expression ~ &(Identifier ~ LeftArrow | EOI) }
-Expression	= ${ (Sequence ~ (Slash ~ Sequence)* ~ (Slash)? ) ? }
+Expression	= ${ (Sequence ~ (Slash ~ Sequence)* ~ (TrailingSlash)? ) ? }
 
 Sequence	= ${ Prefix+ }
 
-Prefix		= ${ And ~ Action
+Prefix		= _{ And ~ Action
 		 | Not ~ Action
 		 | And ~ Suffix	
 		 | Not ~ Suffix	
 		 |     Suffix }
-Suffix          = ${ Primary ~ (Question | Star | Plus )? }
-Primary	        = ${ Identifier ~ !LeftArrow
+Suffix          = _{ Primary ~ (Question | Star | Plus )? }
+Primary	        = _{ Identifier ~ !LeftArrow
                  | Open ~ Expression ~ Close
                  | Literal
                  | Class
@@ -45,7 +45,8 @@ Primary	        = ${ Identifier ~ !LeftArrow
 // Lexical syntax
 
 //PrivateIdentifier = ${ ('a'..'z' | "_") ~ IdentCont* ~ Spacing }
-Identifier	= @{ IdentStart ~ IdentCont* ~ Spacing }
+IdentifierName = @{ IdentStart ~ IdentCont* }
+Identifier	= _{ IdentifierName ~ Spacing }
 IdentStart	= @{ ('a'..'z' | 'A'..'Z' | "_") }
 IdentCont	= @{ IdentStart | '0'..'9' }
 Literal		= ${ "'" ~ (!"'" ~ Char)? ~ (!"'" ~ Char )* ~ "'" ~ Spacing
@@ -78,6 +79,7 @@ Escape          = ${ "\\a"                      // # bell
                  | "\\\\"
                  }
 LeftArrow	= ${ ("<-" | "\0x2190") ~ Spacing }
+TrailingSlash	= ${ "/" ~ Spacing }
 Slash		= ${ "/" ~ Spacing }
 And		= ${ "&" ~ Spacing }
 Not		= ${ "!" ~ Spacing }
