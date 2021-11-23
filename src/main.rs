@@ -201,16 +201,35 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
 fn convert_expression(expr: pest::iterators::Pair<Rule>) -> String {
     let mut acc: String = "".to_string();
     let mut inner_pairs = expr.into_inner();
+    let mut need_bar = false;
+    let mut empty_match = false;
     for inner_pair in inner_pairs {
         // acc.push_str(&format!("\n    {:#?}", &inner_pair));
         match inner_pair.as_rule() {
-            Rule::Slash => acc.push_str(" |"),
-            Rule::Sequence => acc.push_str(&convert_sequence(inner_pair)),
-            Rule::TrailingSlash => acc.push_str(" | EOI "),
+            Rule::Slash => need_bar = true,
+            Rule::Sequence => {
+                let seq_str = convert_sequence(inner_pair);
+                if &seq_str != "" {
+                    if need_bar {
+                        acc.push_str(" |");
+                    }
+                    acc.push_str(&seq_str);
+                } else {
+                    /* there was an empty branch, we should generate code for an empty match */
+                    empty_match = true;
+                }
+            }
+            Rule::TrailingSlash => {
+                empty_match = true;
+            }
             _ => unreachable!(),
         }
     }
-    acc
+    if empty_match {
+        format!(" ({} )?", &acc)
+    } else {
+        acc
+    }
 }
 
 fn main() {
