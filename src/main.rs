@@ -157,8 +157,14 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
                     acc.push_str(" ANY");
                 }
             }
-            Rule::SingleQLiteral => acc.push_str(&format!(" \"{}\"", inner_pair.as_str())),
-            Rule::DoubleQLiteral => acc.push_str(&format!(" ^\"{}\"", inner_pair.as_str())),
+            Rule::SingleQLiteral => acc.push_str(&format!(
+                " \"{}\"",
+                inner_pair.as_str().replace("\"", "\\\"")
+            )),
+            Rule::DoubleQLiteral => acc.push_str(&format!(
+                " ^\"{}\"",
+                inner_pair.as_str().replace("\"", "\\\"")
+            )),
             Rule::Action => {
                 /* Actions are not supported */
                 suppress_tilde = true;
