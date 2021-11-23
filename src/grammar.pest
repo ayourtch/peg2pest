@@ -9,56 +9,57 @@
 //     January 14--16, 2004, Venice, Italy.
 
 // Hierarchical syntax
-Grammar		= { Spacing ~ "package" ~ MustSpacing ~ Identifier
+Grammar		= ${ Spacing ~ PackageName
 			   ~ Import*
                            ~ "type" ~ MustSpacing ~ Identifier
                            ~ "Peg" ~ Spacing ~ Action
                            ~ Definition+ ~ EndOfFile }
+PackageName     = ${ "package" ~ MustSpacing ~ Identifier }
 
-Import		= { "import" ~ Spacing ~ (MultiImport | SingleImport) ~ Spacing }
-SingleImport	= { ImportName }
-MultiImport	= { "(" ~ Spacing ~ (ImportName ~ "\n" ~ Spacing)* ~ Spacing ~ ")"  }
+Import		= ${ "import" ~ Spacing ~ (MultiImport | SingleImport) ~ Spacing }
+SingleImport	= ${ ImportName }
+MultiImport	= ${ "(" ~ Spacing ~ (ImportName ~ "\n" ~ Spacing)* ~ Spacing ~ ")"  }
 
-ImportName	= { "\"" ~ ('0'..'9' | 'a'..'z' | 'A'..'Z' | "_" | "/" | "." | "\\" | "-")+ ~ "\"" }
+ImportName	= ${ "\"" ~ ('0'..'9' | 'a'..'z' | 'A'..'Z' | "_" | "/" | "." | "\\" | "-")+ ~ "\"" }
 
-Definition	= { Identifier 
+Definition	= ${ Identifier
 		     ~ LeftArrow ~ Expression ~ &(Identifier ~ LeftArrow | EOI) }
-Expression	= { (Sequence ~ (Slash ~ Sequence)* ~ (Slash)? ) ? }
+Expression	= ${ (Sequence ~ (Slash ~ Sequence)* ~ (Slash)? ) ? }
 
-Sequence	= { Prefix+ }
+Sequence	= ${ Prefix+ }
 
-Prefix		= { And ~ Action
-		 | Not ~ Action 
+Prefix		= ${ And ~ Action
+		 | Not ~ Action
 		 | And ~ Suffix	
 		 | Not ~ Suffix	
 		 |     Suffix }
-Suffix          = { Primary ~ (Question | Star | Plus )? }
-Primary	        = { Identifier ~ !LeftArrow
+Suffix          = ${ Primary ~ (Question | Star | Plus )? }
+Primary	        = ${ Identifier ~ !LeftArrow
                  | Open ~ Expression ~ Close
                  | Literal
                  | Class
-                 | Dot                          
-                 | Action                       
+                 | Dot
+                 | Action
                  | Begin ~ Expression ~ End }
 
 // Lexical syntax
 
-//PrivateIdentifier = { ('a'..'z' | "_") ~ IdentCont* ~ Spacing }
-Identifier	= { IdentStart ~ IdentCont* ~ Spacing }
-IdentStart	= { ('a'..'z' | 'A'..'Z' | "_") }
-IdentCont	= { IdentStart | '0'..'9' }
-Literal		= { "'" ~ (!"'" ~ Char)? ~ (!"'" ~ Char )* ~ "'" ~ Spacing 
+//PrivateIdentifier = ${ ('a'..'z' | "_") ~ IdentCont* ~ Spacing }
+Identifier	= @{ IdentStart ~ IdentCont* ~ Spacing }
+IdentStart	= @{ ('a'..'z' | 'A'..'Z' | "_") }
+IdentCont	= @{ IdentStart | '0'..'9' }
+Literal		= ${ "'" ~ (!"'" ~ Char)? ~ (!"'" ~ Char )* ~ "'" ~ Spacing
 		 | "\"" ~ (!"\"" ~ DoubleChar)? ~ (!"\"" ~ DoubleChar )* ~ "\"" ~ Spacing }
-Class		= { ( "[[" ~ ( "^" ~ DoubleRanges | DoubleRanges )? ~ "]]" | "[" ~ ( "^" ~ Ranges | Ranges )? ~ "]" ) ~ Spacing }
-Ranges		= { !"]" ~ Range ~ (!"]" ~ Range )* }
-DoubleRanges	= { !"]]" ~ DoubleRange ~ (!"]]" ~ DoubleRange)* }
-Range		= { Char ~ "-" ~ Char | Char }
-DoubleRange	= { Char ~ "-" ~ Char | DoubleChar }
-Char            = { Escape | !"\\" ~ ANY }
-DoubleChar	= { Escape
+Class		= ${ ( "[[" ~ ( "^" ~ DoubleRanges | DoubleRanges )? ~ "]]" | "[" ~ ( "^" ~ Ranges | Ranges )? ~ "]" ) ~ Spacing }
+Ranges		= ${ !"]" ~ Range ~ (!"]" ~ Range )* }
+DoubleRanges	= ${ !"]]" ~ DoubleRange ~ (!"]]" ~ DoubleRange)* }
+Range		= ${ Char ~ "-" ~ Char | Char }
+DoubleRange	= ${ Char ~ "-" ~ Char | DoubleChar }
+Char            = ${ Escape | !"\\" ~ ANY }
+DoubleChar	= ${ Escape
 		 | ('a'..'z' | 'A'..'Z')
                  | !"\\" ~ ANY }
-Escape          = { "\\a"                      // # bell
+Escape          = ${ "\\a"                      // # bell
                  | "\\b"                      //  bs
                  | "\\e"                      //  esc
                  | "\\f"                      //  ff
@@ -66,35 +67,35 @@ Escape          = { "\\a"                      // # bell
                  | "\\r"                      //  cr
                  | "\\t"                      //  ht
                  | "\\v"                      //  vt
-                 | "\\'"		      
-                 | "\\\""		      
-                 | "\\["                     
-                 | "\\]"                     
-                 | "\\-"                     
-                 | "\\" ~ "0x" ~ ASCII_HEX_DIGIT+    
+                 | "\\'"		
+                 | "\\\""		
+                 | "\\["
+                 | "\\]"
+                 | "\\-"
+                 | "\\" ~ "0x" ~ ASCII_HEX_DIGIT+
                  | "\\" ~ '0'..'3' ~ '0'..'7' ~ '0'..'7'
                  | "\\" ~ '0'..'7' ~ '0'..'7'?
                  | "\\\\"
                  }
-LeftArrow	= { ("<-" | "\0x2190") ~ Spacing }
-Slash		= { "/" ~ Spacing }
-And		= { "&" ~ Spacing }
-Not		= { "!" ~ Spacing }
-Question	= { "?" ~ Spacing }
-Star		= { "*" ~ Spacing }
-Plus		= { "+" ~ Spacing }
-Open		= { "(" ~ Spacing }
-Close		= { ")" ~ Spacing }
-Dot		= { "." ~ Spacing }
-SpaceComment	= { (Space | Comment) }
-Spacing		= { SpaceComment* }
-MustSpacing	= { SpaceComment+ }
-Comment		= { ("#" | "//") ~ (!EndOfLine ~ ANY)* ~ EndOfLine }
-Space		= { " " | "\t" | EndOfLine }
-EndOfLine	= { "\r\n" | "\n" | "\r" }
-EndOfFile	= { EOI }
-Action		= { "{" ~ ActionBody* ~ "}" ~ Spacing }
-ActionBody	= { (!("{" | "}") ~ ANY) | "{" ~ ActionBody* ~ "}" }
-Begin		= { "<" ~ Spacing }
-End		= { ">" ~ Spacing }
+LeftArrow	= ${ ("<-" | "\0x2190") ~ Spacing }
+Slash		= ${ "/" ~ Spacing }
+And		= ${ "&" ~ Spacing }
+Not		= ${ "!" ~ Spacing }
+Question	= ${ "?" ~ Spacing }
+Star		= ${ "*" ~ Spacing }
+Plus		= ${ "+" ~ Spacing }
+Open		= ${ "(" ~ Spacing }
+Close		= ${ ")" ~ Spacing }
+Dot		= ${ "." ~ Spacing }
+SpaceComment	= _{ (Space | Comment) }
+Spacing		= _{ SpaceComment* }
+MustSpacing	= _{ SpaceComment+ }
+Comment		= _{ ("#" | "//") ~ (!EndOfLine ~ ANY)* ~ EndOfLine }
+Space		= _{ " " | "\t" | EndOfLine }
+EndOfLine	= _{ "\r\n" | "\n" | "\r" }
+EndOfFile	= _{ EOI }
+Action		= ${ "{" ~ ActionBody* ~ "}" ~ Spacing }
+ActionBody	= @{ (!("{" | "}") ~ ANY) | "{" ~ ActionBody* ~ "}" }
+Begin		= ${ "<" ~ Spacing }
+End		= ${ ">" ~ Spacing }
 

@@ -73,7 +73,7 @@ fn main() {
                     // println!("Parse: {:?}", &okparse);
                     // println!("Eval: {:?}", eval(okparse));
                     println!("{}: Parse is ok", &fname);
-                    // println!("data:\n{:#?}", okparse);
+                    println!("data:\n{:#?}", okparse);
                     // println!("data:\n{}", okparse.as_str());
                 }
                 Err(e) => {
