@@ -17,15 +17,14 @@ use pest::prec_climber::PrecClimber;
 #[grammar = "grammar.pest"]
 pub struct MyParser;
 
-/// This program does something useful, but its author needs to edit this.
-/// Else it will be just hanging around forever
+/// This program converts the .peg grammars as used in https://github.com/pointlander/peg
+/// into the .pest files as used by https://github.com/pest-parser/pest
+///
+/// Actions are not supported, all generated rules are compound-atomic
+/// (you most probably will need to tweak that).
 #[derive(Debug, Clone, ClapParser, Serialize, Deserialize)]
 #[clap(version = env!("GIT_VERSION"), author = "Andrew Yourtchenko <ayourtch@gmail.com>")]
 struct Opts {
-    /// Target hostname to do things on
-    #[clap(short, long, default_value = "localhost")]
-    target_host: String,
-
     /// Override options from this yaml/json file
     #[clap(short, long)]
     options_override: Option<String>,
@@ -180,9 +179,7 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
                 /* Actions are not supported */
                 suppress_tilde = true;
             }
-            Rule::Begin => {
-                /* nothing */
-            }
+            Rule::Begin => { /* nothing */ }
             Rule::End => {
                 /* nothing */
                 suppress_tilde = true;
