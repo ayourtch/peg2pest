@@ -178,7 +178,7 @@ fn main() {
                 Ok(okparse) => {
                     // println!("Parse: {:?}", &okparse);
                     // println!("Eval: {:?}", eval(okparse));
-                    println!("{}: Parse is ok", &fname);
+                    // println!("{}: Parse is ok", &fname);
                     // println!("data:\n{:#?}", okparse);
                     for pair in okparse {
                         match pair.as_rule() {
