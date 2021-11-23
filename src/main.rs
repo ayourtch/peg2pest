@@ -31,6 +31,10 @@ struct Opts {
     #[clap(short, long)]
     options_override: Option<String>,
 
+    /// input filename to read
+    #[clap(short, long)]
+    input_filename: Option<String>,
+
     /// A level of verbosity, and can be used multiple times
     #[clap(short, long, parse(from_occurrences))]
     verbose: i32,
@@ -61,6 +65,24 @@ fn main() {
         println!("===========");
         let data = serde_yaml::to_string(&opts).unwrap();
         println!("{}", data);
+    }
+    if let Some(fname) = &opts.input_filename {
+        if let Ok(data) = std::fs::read_to_string(&fname) {
+            match MyParser::parse(Rule::Grammar, &data) {
+                Ok(okparse) => {
+                    // println!("Parse: {:?}", &okparse);
+                    // println!("Eval: {:?}", eval(okparse));
+                    println!("{}: Parse is ok", &fname);
+                    // println!("data:\n{:#?}", okparse);
+                    // println!("data:\n{}", okparse.as_str());
+                }
+                Err(e) => {
+                    println!("{}: Error: {:?}", &fname, &e);
+                }
+            }
+
+        }
+
     }
 
     println!("Hello, here is your options: {:#?}", &opts);
