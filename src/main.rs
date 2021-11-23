@@ -49,10 +49,15 @@ fn convert_class(class: pest::iterators::Pair<Rule>) -> String {
     let mut full_acc: String = "".to_string();
     let mut inner_pairs = class.into_inner();
     let mut suppress_bar = true;
+    let mut negate_class = false;
 
     for inner_pair in inner_pairs {
         let mut acc: String = "".to_string();
         match &inner_pair.as_rule() {
+            Rule::NegateClass => {
+                negate_class = true;
+                continue;
+            }
             Rule::Range => {
                 let s = inner_pair.as_str();
                 if s.len() == 3 {
@@ -91,7 +96,7 @@ fn convert_class(class: pest::iterators::Pair<Rule>) -> String {
                     }
                 }
             }
-            x => acc.push_str(&format!(" RULE({:#?})", x)),
+            x => acc.push_str(&format!(" CRULE({:#?})", x)),
         }
 
         if suppress_bar {
@@ -102,7 +107,11 @@ fn convert_class(class: pest::iterators::Pair<Rule>) -> String {
 
         full_acc.push_str(&acc);
     }
-    full_acc
+    if negate_class {
+        format!("!({} ) ~ ANY", &full_acc)
+    } else {
+        full_acc
+    }
 }
 
 fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
@@ -111,6 +120,7 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
     let mut suppress_tilde = true;
     let mut suppress_next_tilde = false;
     let mut rule_not = false;
+    let mut current_rule_not = false;
 
     for inner_pair in inner_pairs {
         let mut acc: String = "".to_string();
@@ -118,6 +128,7 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
             suppress_tilde = true;
             suppress_next_tilde = false;
         }
+        current_rule_not = (&inner_pair.as_rule() == &Rule::Not);
         match &inner_pair.as_rule() {
             Rule::IdentifierName => {
                 acc.push_str(&convert_identifier_name(inner_pair));
@@ -169,7 +180,9 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
                 /* Actions are not supported */
                 suppress_tilde = true;
             }
-            Rule::Begin => { /* nothing */ }
+            Rule::Begin => {
+                /* nothing */
+            }
             Rule::End => {
                 /* nothing */
                 suppress_tilde = true;
@@ -189,11 +202,9 @@ fn convert_sequence(seq: pest::iterators::Pair<Rule>) -> String {
         if !suppress_tilde {
             full_acc.push_str(" ~");
         }
-        if !suppress_next_tilde {
-            if rule_not {
-                full_acc.push_str(" !");
-                rule_not = false;
-            }
+        if rule_not && !current_rule_not {
+            full_acc.push_str(" !");
+            rule_not = false;
         }
         full_acc.push_str(&acc);
         if suppress_tilde {

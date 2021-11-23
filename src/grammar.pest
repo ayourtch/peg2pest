@@ -57,7 +57,8 @@ DoubleQLiteralFull = _{ "\"" ~ DoubleQLiteral ~ "\"" ~ Spacing }
 
 Literal		= _{ SingleQLiteralFull | DoubleQLiteralFull }
 		 
-Class		= ${ ( "[[" ~ ( "^" ~ DoubleRanges | DoubleRanges )? ~ "]]" | "[" ~ ( "^" ~ Ranges | Ranges )? ~ "]" ) ~ Spacing }
+Class		= ${ ( "[[" ~ ( NegateClass ~ DoubleRanges | DoubleRanges )? ~ "]]" | "[" ~ ( NegateClass ~ Ranges | Ranges )? ~ "]" ) ~ Spacing }
+NegateClass     = ${ "^" }
 Ranges		= _{ !"]" ~ Range ~ (!"]" ~ Range )* }
 DoubleRanges	= _{ !"]]" ~ DoubleRange ~ (!"]]" ~ DoubleRange)* }
 Range		= ${ Char ~ "-" ~ Char | Char }
